@@ -6,15 +6,20 @@ import starImg from './assets/star.png'
 import bombImg from './assets/bomb.png'
 import dudeImg from './assets/dude.png'
 
-var player;
-var platforms;
-var cursors;
+// var player;
+// var platforms;
+// var cursors;
 
 class MyGame extends Phaser.Scene
 {
     constructor ()
     {
         super();
+        this.state = {
+        player: {},
+        platforms: {},
+        cursors: {}
+        }
     }
 
     preload ()
@@ -36,18 +41,18 @@ class MyGame extends Phaser.Scene
     {
         this.add.image(400, 300, 'sky');
 
-        platforms = this.physics.add.staticGroup();
+        this.platforms = this.physics.add.staticGroup();
 
-        platforms.create(400, 568, 'ground').setScale(2).refreshBody();
+        this.platforms.create(400, 568, 'ground').setScale(2).refreshBody();
 
-        platforms.create(600, 400, 'ground');
-        platforms.create(50, 250, 'ground');
-        platforms.create(750, 220, 'ground');
+        this.platforms.create(600, 400, 'ground');
+        this.platforms.create(50, 250, 'ground');
+        this.platforms.create(750, 220, 'ground');
 
-        player = this.physics.add.sprite(100, 450, 'dude');
+        this.player = this.physics.add.sprite(100, 450, 'dude');
 
-        player.setBounce(0.2);
-        player.setCollideWorldBounds(true);
+        this.player.setBounce(0.2);
+        this.player.setCollideWorldBounds(true);
 
         this.anims.create({
             key: 'left',
@@ -69,9 +74,9 @@ class MyGame extends Phaser.Scene
             repeat: -1
         });
 
-        cursors = this.input.keyboard.createCursorKeys();
+        this.cursors = this.input.keyboard.createCursorKeys();
 
-        this.physics.add.collider(player, platforms);
+        this.physics.add.collider(this.player, this.platforms);
     }
 
     update ()
@@ -80,26 +85,26 @@ class MyGame extends Phaser.Scene
 
     if (cursors.left.isDown)
 {
-    player.setVelocityX(-160);
+    this.player.setVelocityX(-160);
 
-    player.anims.play('left', true);
+    this.player.anims.play('left', true);
 }
 else if (cursors.right.isDown)
 {
-    player.setVelocityX(160);
+    this.player.setVelocityX(160);
 
-    player.anims.play('right', true);
+    this.player.anims.play('right', true);
 }
 else
 {
-    player.setVelocityX(0);
+    this.player.setVelocityX(0);
 
-    player.anims.play('turn');
+    this.player.anims.play('turn');
 }
 
-if (cursors.up.isDown && player.body.touching.down)
+if (cursors.up.isDown && this.player.body.touching.down)
 {
-    player.setVelocityY(-330);
+    this.player.setVelocityY(-330);
 }
 }
 
