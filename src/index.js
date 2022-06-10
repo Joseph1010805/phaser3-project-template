@@ -6,6 +6,7 @@ import starImg from './assets/star.png'
 import bombImg from './assets/bomb.png'
 import dudeImg from './assets/hero1.png'
 import slimeImg from './assets/slime.png'
+import fistImg from './assets/fist.png'
 import tileset from './assets/tileset.png'
 import worldMusic from './assets/Story2.ogg'
 import hitSound from './assets/Hit.mp3'
@@ -25,6 +26,8 @@ class MyGame extends Phaser.Scene
         this.gameOver = false
         this.facing = 'front';
         this.isHitting = 'false'
+        this.slimeCount = 0
+        this.slimeId = 0
     }
 
     collectStar(player, star) {
@@ -55,21 +58,28 @@ class MyGame extends Phaser.Scene
         }
     }
 
-    Damage (player, bomb)
+    damagePlayer (player, bomb)
 {
 
     this.player.setTint(0xff0000);
 
-    this.player.anims.play('turn');
+    // this.player.anims.play('turn');
 
     this.health--
     this.healthText.setText('health: ' + this.health)
     console.log(this.health)
     if (this.health === 0) {
     this.gameOver = true;
-    this.physics.pause();
+    // this.physics.pause();
     }
 }
+
+    hitEnemy (fist, slime) {
+        console.log(slime, "DIS IS DA SLIME !")
+        slime.disableBody(true, true);
+        console.log(fist, " DA FISSSST")
+        this.slimeCount--
+    }
 
 
     preload ()
@@ -86,6 +96,7 @@ class MyGame extends Phaser.Scene
         this.load.spritesheet('tileset',
             tileset,
             { frameWidth: 32, frameHeight: 33 });
+            this.load.image('fist', fistImg);
         this.load.audio("storyMusic", worldMusic)
         this.load.audio("hitSound", hitSound)
         this.load.spritesheet('dude',
@@ -124,16 +135,24 @@ class MyGame extends Phaser.Scene
         this.platforms.create(50, 250, 'ground');
         this.platforms.create(750, 220, 'ground');
 
+
         this.player = this.physics.add.sprite(100, 450, 'dude');
 
         this.player.setBounce(0.2);
         this.player.setCollideWorldBounds(true);
 
+
+        // this.anims.create({
+        //     key: 'space',
+        //     frames: [{ key: 'fist', frame: 4 }],
+        //     frameRate: 10,
+        //     repeat: -1
+        // });
+
         this.anims.create({
             key: 'left',
             frames: this.anims.generateFrameNumbers('dude', { start: 3, end: 5 }),
-            frameRate: 10,
-            repeat: -1
+            frameRate: 20,
         });
 
         this.anims.create({
@@ -165,8 +184,14 @@ class MyGame extends Phaser.Scene
 
         this.bombs = this.physics.add.group();
         this.tilesets = this.physics.add.group()
-        this.slimes = this.physics.add.group();
-
+        this.slimes = this.physics.add.group({
+            slimeId: this.slimeId,
+            HP: 5
+        });
+        // this.fists = this.physics.add.staticGroup();
+         this.fists = this.physics.add.group()
+        // this.fists.body.immovable = true;
+        // this.fists.create(400, 568, 'ground').setScale(2).refreshBody();
 
         this.cursors = this.input.keyboard.createCursorKeys();
 
@@ -174,9 +199,10 @@ class MyGame extends Phaser.Scene
         this.physics.add.collider(this.stars, this.platforms);
         this.physics.add.collider(this.bombs, this.platforms);
         this.physics.add.collider(this.slimes, this.platforms);
-        this.physics.add.collider(this.player, this.bombs, this.Damage, null, this);
-        this.physics.add.collider(this.player, this.slimes, this.Damage, null, this);
+        this.physics.add.collider(this.player, this.bombs, this.damagePlayer, null, this);
+        this.physics.add.collider(this.player, this.slimes, this.damagePlayer, null, this);
         this.physics.add.overlap(this.player, this.stars, this.collectStar, null, this);
+        this.physics.add.collider(this.fists, this.slimes, this.hitEnemy, null, this);
         this.scoreText = this.add.text(16, 16, 'money: 0', { fontSize: '32px', fill: '#000' });
         this.healthText = this.add.text(16, 40, 'health: 5', { fontSize: '32px', fill: '#000' });
     }
@@ -192,36 +218,27 @@ class MyGame extends Phaser.Scene
 
     let monsterChance = Phaser.Math.Between(1, 500000)
 
-    if (monsterChance > 499000) {
+    if (monsterChance > 499300) {
             console.log("YOU ARE FACING: ", this.facing)
             var x = Phaser.Math.Between(0, 800);
             console.log("PUT A MONSTER HERE")
 
-            // slimes only move on the X axis , maybe do a little bounce?
 
-            // var slime = this.slimes.create(x, 16, 'slime');
-            // slime.setCollideWorldBounds(true);
-            // // ^ see what happens if this is false^
-            // slime.setVelocity(Phaser.Math.Between(-200, 200), 20);
-
-                // var x = (player.x < 400) ? Phaser.Math.Between(400, 800) : Phaser.Math.Between(0, 400);
-
+            if (this.slimeCount < 5) {
                 var slime = this.slimes.create(x, 16, 'slime');
-                slime.setCollideWorldBounds(true);
-                slime.setVelocity(Phaser.Math.Between(-200, 200), 20);
+                console.log("THIS IS SLIME: ", this.slimeId, "!!!!!")
+                this.slimeId++
+                slime.setCollideWorldBounds(true, 1);
+                slime.setBounce(.5);
+                slime.setVelocityX(Phaser.Math.Between(-200, 200), 20);
+                this.slimeCount++
+            } else {
+                console.log("too many slimes")
+            }
+
 
     }
 
-    // var x = (player.x < 400) ? Phaser.Math.Between(400, 800) : Phaser.Math.Between(0, 400);
-
-    //         var bomb = this.bombs.create(x, 16, 'slime');
-    //         bomb.setCollideWorldBounds(true);
-    //         bomb.setVelocity(Phaser.Math.Between(-200, 200), 20);
-
-
-
-    // to create a "hit" when standing still, check the last button pressed between left and right
-    // if right hit right if left hit left
 
 
     if (cursors.left.isDown)
@@ -257,15 +274,28 @@ if (cursors.up.isDown && this.player.body.touching.down)
 
 if (cursors.space.isDown && !this.isHitting)
 {
+    let fist;
+    if (this.facing === 'right') {
+      fist = this.fists.create(this.player.body.position.x + 50, this.player.body.position.y,'fist');
+    }
+    if (this.facing === 'left') {
+       fist = this.fists.create(this.player.body.position.x - 17, this.player.body.position.y, 'fist');
+   }
 
+
+
+    //   setInterval(fist.disableBody(true, true), 1000)
     // push enemy back on hit a little (depending on enemy weight)
     // hitbox above and in the direction of facing player
+    //  this.player.anims.play('space')
+    console.log(this.slimes, "SLIME")
     console.log("punch")
-    console.log("POSITION: ",this.player.body.position,"Velocity: ", this.player.body.velocity)
+    console.log("POSITION: ",this.player.body.position.y)
     console.log("you are facing", this.facing)
     this.isHitting = true;
     let hitSound = this.sound.add('hitSound')
     hitSound.play();
+    // this.hitEnemy(this.player.body.position)
 }
 
 if (cursors.space.isUp)
