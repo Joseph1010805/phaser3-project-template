@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import logoImg from './assets/logo.png';
 import skyImg from './assets/sky.png';
 import groundImg from './assets/platform.png'
-import starImg from './assets/star.png'
+import coinImg from './assets/coin.png'
 import bombImg from './assets/bomb.png'
 import dudeImg from './assets/hero1.png'
 import slimeImg from './assets/slime.png'
@@ -10,6 +10,13 @@ import fistImg from './assets/fist.png'
 import tileset from './assets/tileset.png'
 import worldMusic from './assets/Story2.ogg'
 import hitSound from './assets/Hit.mp3'
+import swordSound from './assets/sword.mp3'
+import successSound from './assets/success.mp3'
+import goldSound from './assets/gold.mp3'
+import moss1Img from './assets/Moss1.png'
+import mossPadImg from './assets/mossPad.png'
+import wizardImg from './assets/wizard.png'
+import treeImg from './assets/tree.png'
 
 
 
@@ -28,21 +35,23 @@ class MyGame extends Phaser.Scene
         this.isHitting = 'false'
         this.slimeCount = 0
         this.slimeId = 0
+        this.sword = false
+        this.isSpeaking = false;
     }
 
-    collectStar(player, star) {
-        star.disableBody(true, true);
+    collectCoin(player, coin) {
+        coin.disableBody(true, true);
+        let goldSound = this.sound.add('goldSound')
+        goldSound.play();
         let itemChance = Phaser.Math.Between(1, 500000)
-        console.log(itemChance)
         if (itemChance >= 490000) {
             console.log("YOU GOT A COMMON ITEM!!!!!")
         }
         this.score += 1;
         this.scoreText.setText('money: ' + this.score);
-        console.log("score: ", this.score)
-        if (this.stars.countActive(true) === 0)
+        if (this.coins.countActive(true) === 0)
         {
-            this.stars.children.iterate(function (child) {
+            this.coins.children.iterate(function (child) {
 
                 child.enableBody(true, child.x, 0, true, true);
 
@@ -60,25 +69,50 @@ class MyGame extends Phaser.Scene
 
     damagePlayer (player, bomb)
 {
-
-    this.player.setTint(0xff0000);
+    // this.player.setTint(0xff0000);
 
     // this.player.anims.play('turn');
 
     this.health--
     this.healthText.setText('health: ' + this.health)
-    console.log(this.health)
     if (this.health === 0) {
     this.gameOver = true;
     // this.physics.pause();
     }
 }
 
+    playerBounce () {
+        // this.player.setVelocityY(50)
+    }
+
     hitEnemy (fist, slime) {
-        console.log(slime, "DIS IS DA SLIME !")
-        slime.disableBody(true, true);
-        console.log(fist, " DA FISSSST")
+
+        if (this.sword) {
+            slime.disableBody(true, true);
+            this.slimeCount--
+        }
+        // slime.disableBody(true, true);
+        slime.setVelocityX(Phaser.Math.Between(-200, 200), 20)
         this.slimeCount--
+    }
+
+    takeThis () {
+        var cursors = this.input.keyboard.createCursorKeys();
+        if (cursors.shift.isDown && !this.isSpeaking) {
+            this.isSpeaking = true;
+            console.log("Hero, it's dangerous to go alone! Take This!")
+            this.sword = true
+            let successSound = this.sound.add('successSound')
+
+            // setTimeout(successSound.play, "2000")
+             setTimeout(() => {console.log("you got a rusty old sword!")}, "2000")
+            successSound.play()
+        }
+    }
+
+    //playerClimb doesn't work as intended just yet
+    playerClimb (player, ladder) {
+    //    player.anims.currentAnim = player.anims.animationManager.anims.entries.climbing
     }
 
 
@@ -88,8 +122,12 @@ class MyGame extends Phaser.Scene
         this.load.image('logo', logoImg);
         this.load.image('sky', skyImg);
         this.load.image('ground', groundImg);
-        this.load.image('star', starImg);
+        this.load.image('coin', coinImg);
         this.load.image('bomb', bombImg);
+        this.load.image('moss1', moss1Img)
+        this.load.image('mossPad', mossPadImg)
+        this.load.image('wizard', wizardImg)
+        this.load.image('tree', treeImg)
         this.load.spritesheet('slime',
             slimeImg,
             { frameWidth: 32, frameHeight: 33 });
@@ -99,6 +137,9 @@ class MyGame extends Phaser.Scene
             this.load.image('fist', fistImg);
         this.load.audio("storyMusic", worldMusic)
         this.load.audio("hitSound", hitSound)
+        this.load.audio("swordSound", swordSound)
+        this.load.audio("successSound", successSound)
+        this.load.audio("goldSound", goldSound)
         this.load.spritesheet('dude',
             dudeImg,
             // setting the frameHeight to 33 removes some odd pixels
@@ -114,19 +155,23 @@ class MyGame extends Phaser.Scene
         this.add.image(400, 300, 'sky');
         let music = this.sound.add('storyMusic', { loop: true })
         music.play()
-        this.stars = this.physics.add.group({
-            key: 'star',
+        this.coins = this.physics.add.group({
+            key: 'coin',
             repeat: 11,
             setXY: { x: 12, y: 0, stepX: 70 }
         });
 
-        this.stars.children.iterate(function (child) {
+        this.coins.children.iterate(function (child) {
 
             child.setBounceY(Phaser.Math.FloatBetween(0.4, 0.8));
 
         });
 
         this.platforms = this.physics.add.staticGroup();
+        this.moss1 = this.physics.add.staticGroup();
+        this.mossPad = this.physics.add.staticGroup();
+        this.wizard = this.physics.add.staticGroup();
+        this.tree = this.physics.add.staticGroup();
 
          // this.tilesets.create(400, 568, 'tileset').setScale(2).refreshBody();
         this.platforms.create(400, 568, 'ground').setScale(2).refreshBody();
@@ -135,7 +180,16 @@ class MyGame extends Phaser.Scene
         this.platforms.create(50, 250, 'ground');
         this.platforms.create(750, 220, 'ground');
 
+        this.platforms.children.entries.forEach(item => {item.body.checkCollision.down = false})
 
+        this.moss1.create(600, 320, 'moss1')
+        this.moss1.create(750, 500, 'moss1')
+        this.moss1.create(200, 340, 'moss1')
+        this.mossPad.create (400, 370, 'mossPad')
+        this.tree.create(20, 180, 'tree')
+        this.tree.create(750, 150, 'tree')
+        this.tree.create(260, 480, 'tree')
+        this.wizard.create(50, 220, 'wizard')
         this.player = this.physics.add.sprite(100, 450, 'dude');
 
         this.player.setBounce(0.2);
@@ -152,6 +206,12 @@ class MyGame extends Phaser.Scene
         this.anims.create({
             key: 'left',
             frames: this.anims.generateFrameNumbers('dude', { start: 3, end: 5 }),
+            frameRate: 20,
+        });
+
+        this.anims.create({
+            key: 'climbing',
+            frames: this.anims.generateFrameNumbers('dude', { start: 9, end: 11 }),
             frameRate: 20,
         });
 
@@ -196,12 +256,15 @@ class MyGame extends Phaser.Scene
         this.cursors = this.input.keyboard.createCursorKeys();
 
         this.physics.add.collider(this.player, this.platforms);
-        this.physics.add.collider(this.stars, this.platforms);
+        this.physics.add.collider(this.coins, this.platforms);
         this.physics.add.collider(this.bombs, this.platforms);
         this.physics.add.collider(this.slimes, this.platforms);
         this.physics.add.collider(this.player, this.bombs, this.damagePlayer, null, this);
+        this.physics.add.overlap(this.player, this.moss1, this.playerClimb, null, this);
         this.physics.add.collider(this.player, this.slimes, this.damagePlayer, null, this);
-        this.physics.add.overlap(this.player, this.stars, this.collectStar, null, this);
+        this.physics.add.collider(this.player, this.mossPad, this.playerBounce, null, this);
+        this.physics.add.overlap(this.player, this.coins, this.collectCoin, null, this);
+        this.physics.add.overlap(this.player, this.wizard, this.takeThis, null, this);
         this.physics.add.collider(this.fists, this.slimes, this.hitEnemy, null, this);
         this.scoreText = this.add.text(16, 16, 'money: 0', { fontSize: '32px', fill: '#000' });
         this.healthText = this.add.text(16, 40, 'health: 5', { fontSize: '32px', fill: '#000' });
@@ -219,14 +282,11 @@ class MyGame extends Phaser.Scene
     let monsterChance = Phaser.Math.Between(1, 500000)
 
     if (monsterChance > 499300) {
-            console.log("YOU ARE FACING: ", this.facing)
             var x = Phaser.Math.Between(0, 800);
-            console.log("PUT A MONSTER HERE")
 
 
             if (this.slimeCount < 5) {
                 var slime = this.slimes.create(x, 16, 'slime');
-                console.log("THIS IS SLIME: ", this.slimeId, "!!!!!")
                 this.slimeId++
                 slime.setCollideWorldBounds(true, 1);
                 slime.setBounce(.5);
@@ -284,23 +344,26 @@ if (cursors.space.isDown && !this.isHitting)
 
 
 
-    //   setInterval(fist.disableBody(true, true), 1000)
-    // push enemy back on hit a little (depending on enemy weight)
-    // hitbox above and in the direction of facing player
-    //  this.player.anims.play('space')
-    console.log(this.slimes, "SLIME")
-    console.log("punch")
-    console.log("POSITION: ",this.player.body.position.y)
-    console.log("you are facing", this.facing)
+
     this.isHitting = true;
+    if (!this.sword) {
     let hitSound = this.sound.add('hitSound')
     hitSound.play();
+    } else {
+        let swordSound = this.sound.add('swordSound')
+    swordSound.play();
+    }
     // this.hitEnemy(this.player.body.position)
 }
 
 if (cursors.space.isUp)
 {
     this.isHitting = false
+}
+
+if (cursors.shift.isUp)
+{
+    this.isSpeaking = false
 }
 
 }
@@ -317,7 +380,7 @@ const config = {
     physics: {
         default: 'arcade',
         arcade: {
-            gravity: { y: 600 },
+            gravity: { y: 800 },
             debug: false
         }
     },
